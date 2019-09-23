@@ -11,28 +11,54 @@ class ReversiClient:
         self.state = [[0 for x in range(8)] for y in range(8)]
         self.currRound = 0
         self.player_num = -1
-        self.best_move_so_far = None
+        self.best_move_so_far = {}
+        self.target_depth = 5
 
-
-    def determine_move(self, validMoves, tmp_state):
+    # simple board scorer. Score is how many pieces are yours
+    def rate_state(self, game_state):
+        score = 0
+        for row in game_state:
+            for col in game_state:
+                if game_state[row][col] == self.player_num:
+                    score += 1
+        return score
+            
+    # minimax algorithm
+    def determine_move(self, validMoves, tmp_state, max_turn, mini=0, maxi=0, depth_index=0):
         # Go through each valid move, checking for further valid moves down that "branch"
-        # At some point, assign a value to each "final"
-
-        if 1 == 1:
-            # BASE CASE
-            pass
-        # TODO determine best move so far
-        for i in range(len(validMoves)):
-            # change state here
-            r = validMoves[i][0]
-            c = validMoves[i][1]
-            tmp_state[r][c] = self.player_num
-            # get new moves
-            new_moves = self.getValidMoves(self.player_num, tmp_state)
-            # Recursion
-            self.determine_move(new_moves, tmp_state)
-
-        return best_move_so_far
+        if depth_index == self.target_depth or len(validMoves) == 0:
+            # rate the state currently and return
+            return rate_state(tmp_state)
+        
+        # TODO Need to pretend enemy moves
+        
+        # get new moves
+        # change state here
+        tmp_state[validMoves[i][0]][validMoves[i][1]] = self.player_num
+        new_moves = self.getValidMoves(self.player_num, tmp_state)
+        depth_index += 1
+        # if the depth we are at is MAX
+        if max_turn:
+            v = mini
+            for i in range(len(validMoves)):
+                # Recursion
+                score = self.determine_move(new_moves, tmp_state, depth_index, False)
+                if score > v:
+                    v = score
+                if v > maxi:
+                    return maxi
+            return v
+        # min turn
+        else:
+            v = maxi
+            for i in range(len(validMoves)):
+                # Recursion
+                score = self.determine_move(new_moves, tmp_state, depth_index, True)
+                if score < v:
+                    v = score
+                if v < mini:
+                    return mini
+            return v
     
     # You should modify this function
     # validMoves is a list of valid locations that you could place your "stone" on this turn
@@ -44,8 +70,9 @@ class ReversiClient:
             return myMove
         # else determine  the correct move
         tmp_state = self.state.copy()
-        return self.determine_move(validMoves, tmp_state)
-
+        scores = []
+        scores = self.determine_move(validMoves, tmp_state, True)
+        # check minimax and return best move
 
     # establishes a connection with the server
     def initClient(self, me, thehost):
