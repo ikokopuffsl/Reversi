@@ -25,8 +25,8 @@ class ReversiClient:
         if player_num is None:
             player_num = self.player_num
         score = 0
-        for row in game_state:
-            for col in game_state:
+        for row in range(8):
+            for col in range(8):
                 if game_state[row][col] == player_num:
                     score += 1
         return score
