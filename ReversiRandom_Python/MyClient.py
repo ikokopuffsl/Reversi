@@ -68,12 +68,12 @@ class ReversiClient:
             for i in range(len(validMoves)):
                 # change state of board according to our possible moves
                 tmp_state = self.change_state(tmp_state, validMoves[i], self.player_num)
-                enemy_moves = self.getValidMoves(state, self.get_other_player_num(self.player_num))
+                enemy_moves = self.getValidMoves(tmp_state, self.get_other_player_num(self.player_num))
                 for j in range(len(enemy_moves)):
                     # change state of board according to enemy possible moves
                     tmp_state = self.change_state(tmp_state, enemy_moves[j], self.get_other_player_num(self.player_num)) 
                     # get our new possible moves
-                    new_moves = self.getValidMoves(self.player_num, state)
+                    new_moves = self.getValidMoves(tmp_state, self.player_num)
                     # Recursion
                     score = self.determine_move(new_moves, tmp_state, False, v, maxi, depth_index)
                     if score > v:
@@ -90,10 +90,10 @@ class ReversiClient:
             v = maxi
             for i in range(len(validMoves)):
                 tmp_state = self.change_state(tmp_state, validMoves[i], self.player_num)
-                enemy_moves = self.getValidMoves(state, self.get_other_player_num(self.player_num))
+                enemy_moves = self.getValidMoves(tmp_state, self.get_other_player_num(self.player_num))
                 for j in range(len(enemy_moves)):
                     tmp_state = self.change_state(tmp_state, enemy_moves[j], self.get_other_player_num(self.player_num))
-                    new_moves = self.getValidMoves(self.player_num, state)
+                    new_moves = self.getValidMoves(tmp_state, self.player_num)
                     # Recursion
                     score = self.determine_move(new_moves, tmp_state, True, mini, v, depth_index)
                     if score < v:
@@ -198,7 +198,7 @@ class ReversiClient:
                         else:
                             return True
                     break
-        if change_board:
+        if needs_to_change:
             # self.currRound == 0: # Can't be right TODO
             i = 1
             r = row + incy * i
