@@ -2,6 +2,7 @@ import sys
 import socket
 import time
 from random import randint
+import operator
 
 t1 = 0.0  # the amount of time remaining to player 1
 t2 = 0.0  # the amount of time remaining to player 2
@@ -12,52 +13,91 @@ class ReversiClient:
         self.currRound = 0
         self.player_num = -1
         self.best_move_so_far = {}
-        self.target_depth = 5
+        self.target_depth = 3
+
+    # returns the number of the other player
+    def get_other_player_num(self, my_player):
+        return 2 if my_player == 1 else 1
 
     # simple board scorer. Score is how many pieces are yours
-    def rate_state(self, game_state):
+    # Assumes you want to score yourself
+    def rate_state(self, game_state, player_num=self.player_num):
         score = 0
         for row in game_state:
             for col in game_state:
-                if game_state[row][col] == self.player_num:
+                if game_state[row][col] == player_num:
                     score += 1
         return score
-            
-    # minimax algorithm
+    
+    # changes the state of the board
+    def change_state(self, state, move, player_num):
+        # do player_num's move
+        row = move[0]
+        col = move[1]
+        state[row][col] = player_num
+        # change the state of the board accordingly with the move of player_num
+        self.couldBe(row, col, player_num, True, state)
+        return state
+
+    # minimax algorithm. Determines the best possible move for our player
+    # validMoves: the number of valid moves we have at a given depth
+    # tmp_state: the state of the board as we go down the tree looking for the best move
+    # max_turn: if we are at a depth where it is time for the Max part of the algorithm
+    # mini: the curr minimum
+    # maxi: the curr maximum
+    # depth_index: the depth we are at in the tree
     def determine_move(self, validMoves, tmp_state, max_turn, mini=0, maxi=0, depth_index=0):
         # Go through each valid move, checking for further valid moves down that "branch"
         if depth_index == self.target_depth or len(validMoves) == 0:
             # rate the state currently and return
-            return rate_state(tmp_state)
-        
-        # TODO Need to pretend enemy moves
-        
-        # get new moves
-        # change state here
-        tmp_state[validMoves[i][0]][validMoves[i][1]] = self.player_num
-        new_moves = self.getValidMoves(self.player_num, tmp_state)
+            return self.rate_state(tmp_state)
+
         depth_index += 1
+        # set these one first round
+        if mini == 0:
+            mini = self.rate_state(tmp_state)
+        elif maxi == 0:
+            maxi = self.rate_state(tmp_state)
+        
         # if the depth we are at is MAX
+        # this is in dire need of abstraction...but yolo for now
         if max_turn:
-            v = mini
+            v = mini #TODO evaluate
             for i in range(len(validMoves)):
-                # Recursion
-                score = self.determine_move(new_moves, tmp_state, depth_index, False)
-                if score > v:
-                    v = score
-                if v > maxi:
-                    return maxi
-            return v
+                # change state of board according to our possible moves
+                tmp_state = self.change_state(tmp_state, validMoves[i])
+                enemy_moves = self.getValidMoves(state, self.get_other_player_num(self.player_num))
+                for j in range(len(enemy_moves)):
+                    # change state of board according to enemy possible moves
+                    tmp_state = self.change_state(tmp_state, enemy_moves, j) 
+                    # get our new possible moves
+                    new_moves = self.getValidMoves(self.player_num, state)
+                    # Recursion
+                    score = self.determine_move(new_moves, tmp_state, v, maxi, depth_index, False)
+                    if score > v:
+                        v = score
+                    if v > maxi:
+                        return maxi # TODO will we jump out before tabulating the best moves?
+                # if we are at the root then lets look at all the scores of each choice
+                if depth_index == 1:
+                    self.best_move_so_far[i] = v
+                    
+            return v # TODO placement of these? even needed?
         # min turn
         else:
             v = maxi
             for i in range(len(validMoves)):
-                # Recursion
-                score = self.determine_move(new_moves, tmp_state, depth_index, True)
-                if score < v:
-                    v = score
-                if v < mini:
-                    return mini
+                tmp_state = self.change_state(tmp_state, validMoves[i])
+                enemy_moves = self.getValidMoves(state, self.get_other_player_num(self.player_num))
+                for j in range(len(enemy_moves)):
+                    tmp_state = self.change_state(tmp_state, enemy_moves, j)
+                    new_moves = self.getValidMoves(self.player_num, state)
+                    # Recursion
+                    score = self.determine_move(new_moves, tmp_state, mini, v, depth_index, True)
+                    if score < v:
+                        v = score
+                    if v < mini:
+                        return mini
             return v
     
     # You should modify this function
@@ -71,8 +111,11 @@ class ReversiClient:
         # else determine  the correct move
         tmp_state = self.state.copy()
         scores = []
-        scores = self.determine_move(validMoves, tmp_state, True)
-        # check minimax and return best move
+        self.determine_move(validMoves, tmp_state, True)
+        best = max(self.best_move_so_far.items(), key=operator.itemgetter(1))[0]
+        # best is the index into validMoves of the best move to take
+        return best
+        
 
     # establishes a connection with the server
     def initClient(self, me, thehost):
@@ -118,8 +161,9 @@ class ReversiClient:
         return turn, self.currRound
 
 
-    def checkDirection(self, row, col, incx, incy, me):
+    def checkDirection(self, row, col, incx, incy, me, change_board=False, state=None):
         sequence = []
+        needs_to_change = False
         for i in range(1, 8):
             r = row + incy * i
             c = col + incx * i
@@ -136,33 +180,51 @@ class ReversiClient:
                     count = count + 1
                 else:
                     if ((sequence[i] == 1) and (count > 0)):
-                        return True
+                        # if we need to change the board
+                        if change_board:
+                            needs_to_change = True 
+                        else:
+                            return True
                     break
             else:
                 if (sequence[i] == 1):
                     count = count + 1
                 else:
                     if ((sequence[i] == 2) and (count > 0)):
-                        return True
+                        if change_board:
+                            needs_to_change = True 
+                        else:
+                            return True
                     break
-
+        if change_board:
+            # self.currRound == 0: # Can't be right TODO
+            i = 1
+            r = row + incy * i
+            c = col + incx * i
+            stone_number = state[r][c]
+            while (state[r][c] == stone_number):
+                state[r][c] = stone_number
+                i += 1
+                r = row + incy * i
+                c = col + incx * i
+                
         return False
 
-
-    def couldBe(self, row, col, me):
+    # checks all around in all directions from the position of row and col to look for valid moves
+    def couldBe(self, row, col, me, change_board=False, state=None):
+        couldBe = False
         for incx in range(-1, 2):
             for incy in range(-1, 2):
                 if ((incx == 0) and (incy == 0)):
                     continue
 
-                if (self.checkDirection(row, col, incx, incy, me)):
-                    return True
+                if (self.checkDirection(row, col, incx, incy, me, change_board, state)):
+                    if change_board:
+                        couldBe = True
 
-        return False
+        return couldBe
 
     # return the beginning moves
-
-
     def check_beginning_moves(self, validMoves):
         if (self.state[3][3] == 0):
             validMoves.append([3, 3])
@@ -173,10 +235,11 @@ class ReversiClient:
         if (self.state[4][4] == 0):
             validMoves.append([4, 4])
 
-    # generates the set of valid moves for the player; returns a list of valid moves (validMoves)
-
-
-    def getValidMoves(self, me, myState=None):
+    # generates the set of valid moves for the player; 
+    # myState: the state to check for valid moves
+    # player_num: the player number whose moves we are looking for
+    # returns a list of valid moves (validMoves)
+    def getValidMoves(self, myState=None, player_num=self.player_num):
         if myState == None:
             myState = self.state
         validMoves = []
@@ -191,7 +254,7 @@ class ReversiClient:
             for i in range(8):
                 for j in range(8):
                     if (myState[i][j] == 0):
-                        if (self.couldBe(i, j, self.player_num)):
+                        if (self.couldBe(i, j, player_num)):
                             validMoves.append([i, j])
 
         return validMoves
@@ -210,7 +273,7 @@ class ReversiClient:
             self.currRound = status[1]
             if (status[0] == self.player_num):
                 print("Move")
-                validMoves = self.getValidMoves(self.player_num)
+                validMoves = self.getValidMoves(self.state)
                 print(validMoves)
 
                 myMove = self.move(validMoves)
