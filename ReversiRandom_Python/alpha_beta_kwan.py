@@ -7,14 +7,22 @@ from random import randint
 t1 = 0.0    # the amount of time remaining to player 1
 t2 = 0.0    # the amount of time remaining to player 2
 
-state = [[0 for x in range(8)] for y in range(8)] # state[0][0] is the bottom left corner of the board (on the GUI)
+ROW = 8
+COL = 8
+state = [[0 for x in range(ROW)] for y in range(COL)] # state[0][0] is the bottom left corner of the board (on the GUI)
 
 # You should modify this function
 # validMoves is a list of valid locations that you could place your "stone" on this turn
 # Note that "state" is a global variable 2D list that shows the state of the game
-def move(validMoves):
+def move(validMoves, me):
     # just return a random move
     myMove = randint(0,len(validMoves)-1)
+
+    # # empty
+    # if not validMoves:
+        
+
+
 
 
     return myMove
@@ -53,8 +61,8 @@ def readMessage(sock):
     #print t2
 
     count = 4
-    for i in range(8):
-        for j in range(8):
+    for i in range(ROW):
+        for j in range(COL):
             state[i][j] = int(mensaje[count])
             count = count + 1
         print state[i]
@@ -63,11 +71,11 @@ def readMessage(sock):
 
 def checkDirection(row,col,incx,incy,me):
     sequence = []
-    for i in range(1,8):
+    for i in range(1,ROW):
         r = row+incy*i
         c = col+incx*i
     
-        if ((r < 0) or (r > 7) or (c < 0) or (c > 7)):
+        if ((r < 0) or (r > (ROW - 1)) or (c < 0) or (c > (COL - 1))):
             break
 
         sequence.append(state[r][c])
@@ -107,21 +115,23 @@ def getValidMoves(round, me):
     validMoves = []
     print "Round: " + str(round)
     
-    for i in range(8):
+    for i in range(ROW):
         print state[i]
 
     if (round < 4):
-        if (state[3][3] == 0):
-            validMoves.append([3, 3])
-        if (state[3][4] == 0):
-            validMoves.append([3, 4])
-        if (state[4][3] == 0):
-            validMoves.append([4, 3])
-        if (state[4][4] == 0):
-            validMoves.append([4, 4])
+        print "ROW // 2"
+        print ROW//2
+        if (state[(ROW//2)-1][(COL//2)-1] == 0):
+            validMoves.append([(ROW//2)-1, (COL//2)-1])
+        if (state[(ROW//2)-1][(COL//2)] == 0):
+            validMoves.append([(ROW//2)-1,(COL//2)])
+        if (state[(ROW//2)][(COL//2)-1] == 0):
+            validMoves.append([(ROW//2), (COL//2)-1])
+        if (state[(ROW//2)][(COL//2)] == 0):
+            validMoves.append([(ROW//2), (COL//2)])
     else:
-        for i in range(8):
-            for j in range(8):
+        for i in range(ROW):
+            for j in range(COL):
                 if (state[i][j] == 0):
                     if (couldBe(i, j, me)):
                         validMoves.append([i, j])
@@ -137,6 +147,10 @@ def playGame(me, thehost):
     sock = initClient(me, thehost)
     
     while (True):
+        print("STATE")
+        print(state)
+        print("ME")
+        print(me)
         print "Read"
         status = readMessage(sock)
     
@@ -145,7 +159,7 @@ def playGame(me, thehost):
             validMoves = getValidMoves(status[1], me)
             print validMoves
             
-            myMove = move(validMoves)
+            myMove = move(validMoves, me)
         
             sel = str(validMoves[myMove][0]) + "\n" + str(validMoves[myMove][1]) + "\n";
             print "<" + sel + ">"
