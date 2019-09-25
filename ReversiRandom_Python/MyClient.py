@@ -67,15 +67,15 @@ class ReversiClient:
             v = mini #TODO evaluate
             for i in range(len(validMoves)):
                 # change state of board according to our possible moves
-                tmp_state = self.change_state(tmp_state, validMoves[i])
+                tmp_state = self.change_state(tmp_state, validMoves[i], self.player_num)
                 enemy_moves = self.getValidMoves(state, self.get_other_player_num(self.player_num))
                 for j in range(len(enemy_moves)):
                     # change state of board according to enemy possible moves
-                    tmp_state = self.change_state(tmp_state, enemy_moves, j) 
+                    tmp_state = self.change_state(tmp_state, enemy_moves[j], self.get_other_player_num(self.player_num)) 
                     # get our new possible moves
                     new_moves = self.getValidMoves(self.player_num, state)
                     # Recursion
-                    score = self.determine_move(new_moves, tmp_state, v, maxi, depth_index, False)
+                    score = self.determine_move(new_moves, tmp_state, False, v, maxi, depth_index)
                     if score > v:
                         v = score
                     if v > maxi:
@@ -89,13 +89,13 @@ class ReversiClient:
         else:
             v = maxi
             for i in range(len(validMoves)):
-                tmp_state = self.change_state(tmp_state, validMoves[i])
+                tmp_state = self.change_state(tmp_state, validMoves[i], self.player_num)
                 enemy_moves = self.getValidMoves(state, self.get_other_player_num(self.player_num))
                 for j in range(len(enemy_moves)):
-                    tmp_state = self.change_state(tmp_state, enemy_moves, j)
+                    tmp_state = self.change_state(tmp_state, enemy_moves[j], self.get_other_player_num(self.player_num))
                     new_moves = self.getValidMoves(self.player_num, state)
                     # Recursion
-                    score = self.determine_move(new_moves, tmp_state, mini, v, depth_index, True)
+                    score = self.determine_move(new_moves, tmp_state, True, mini, v, depth_index)
                     if score < v:
                         v = score
                     if v < mini:
@@ -214,17 +214,18 @@ class ReversiClient:
 
     # checks all around in all directions from the position of row and col to look for valid moves
     def couldBe(self, row, col, me, change_board=False, state=None):
-        couldBe = False
+        #couldBe = False
         for incx in range(-1, 2):
             for incy in range(-1, 2):
                 if ((incx == 0) and (incy == 0)):
                     continue
-
                 if (self.checkDirection(row, col, incx, incy, me, change_board, state)):
-                    if change_board:
-                        couldBe = True
+                    #if change_board:
+                    #    couldBe = True
+                    #else:
+                    return True
 
-        return couldBe
+        return False
 
     # return the beginning moves
     def check_beginning_moves(self, validMoves):
