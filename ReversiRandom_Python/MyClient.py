@@ -21,7 +21,9 @@ class ReversiClient:
 
     # simple board scorer. Score is how many pieces are yours
     # Assumes you want to score yourself
-    def rate_state(self, game_state, player_num=self.player_num):
+    def rate_state(self, game_state, player_num=None):
+        if player_num is None:
+            player_num = self.player_num
         score = 0
         for row in game_state:
             for col in game_state:
@@ -239,9 +241,12 @@ class ReversiClient:
     # myState: the state to check for valid moves
     # player_num: the player number whose moves we are looking for
     # returns a list of valid moves (validMoves)
-    def getValidMoves(self, myState=None, player_num=self.player_num):
-        if myState == None:
+    def getValidMoves(self, myState=None, player_num=None):
+        if myState is None:
             myState = self.state
+        if player_num is None:
+            player_num = self.player_num
+            
         validMoves = []
         print("Round: " + str(self.currRound))
 
