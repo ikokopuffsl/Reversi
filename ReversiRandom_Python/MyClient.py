@@ -48,18 +48,13 @@ class ReversiClient:
     # mini: the curr minimum
     # maxi: the curr maximum
     # depth_index: the depth we are at in the tree
-    def determine_move(self, validMoves, tmp_state, max_turn, mini=0, maxi=0, depth_index=0):
+    def determine_move(self, validMoves, tmp_state, max_turn, mini=-9999, maxi=9999, depth_index=0):
         # Go through each valid move, checking for further valid moves down that "branch"
         if depth_index == self.target_depth or len(validMoves) == 0:
             # rate the state currently and return
             return self.rate_state(tmp_state)
-
         depth_index += 1
-        # set these one first round
-        if mini == 0:
-            mini = self.rate_state(tmp_state)
-        elif maxi == 0:
-            maxi = self.rate_state(tmp_state)
+        
         
         # if the depth we are at is MAX
         # this is in dire need of abstraction...but yolo for now
@@ -107,6 +102,7 @@ class ReversiClient:
     # Note that "state" is a global variable 2D list that shows the state of the game
     def move(self, validMoves):
         # just return a random move if we are in the first 4 rounds
+        self.best_move_so_far = {} # reset this every time we get a move
         if self.currRound < 4:
             myMove = randint(0, len(validMoves) - 1)
             return myMove
