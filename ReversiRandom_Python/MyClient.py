@@ -13,7 +13,7 @@ class ReversiClient:
         self.currRound = 0
         self.player_num = -1
         self.best_move_so_far = {}
-        self.target_depth = 3
+        self.target_depth = 64
 
     # returns the number of the other player
     def get_other_player_num(self, my_player):
@@ -36,9 +36,10 @@ class ReversiClient:
         # do player_num's move
         row = move[0]
         col = move[1]
-        state[row][col] = player_num
+        
         # change the state of the board accordingly with the move of player_num
         self.couldBe(row, col, player_num, True, state)
+        state[row][col] = player_num
         return state
 
     # minimax algorithm. Determines the best possible move for our player
@@ -169,7 +170,7 @@ class ReversiClient:
             if ((r < 0) or (r > 7) or (c < 0) or (c > 7)):
                 break
 
-            sequence.append(self.state[r][c])
+            sequence.append(state[r][c])
 
         count = 0
         for i in range(len(sequence)):
@@ -201,7 +202,7 @@ class ReversiClient:
             c = col + incx * i
             stone_number = state[r][c]
             while (state[r][c] == stone_number):
-                state[r][c] = stone_number
+                state[r][c] = me
                 i += 1
                 r = row + incy * i
                 c = col + incx * i
@@ -256,7 +257,7 @@ class ReversiClient:
             for i in range(8):
                 for j in range(8):
                     if (myState[i][j] == 0):
-                        if (self.couldBe(i, j, player_num)):
+                        if (self.couldBe(i, j, player_num, False, myState)):
                             validMoves.append([i, j])
 
         return validMoves
